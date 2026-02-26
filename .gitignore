@@ -1,0 +1,36 @@
+# 1. 编译后的二进制可执行文件
+bin/
+main
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# 2. 测试和覆盖率报告
+*.test
+*.out
+coverage.txt
+
+# 3. 依赖包目录 (Go Modules 模式下不需要传 vendor)
+vendor/
+
+# 4. IDE 和编辑器配置文件
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 5. 操作系统产生的垃圾文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 6. 本地环境变量/配置文件 (极度重要：防密码泄露！)
+*.env
+.env.local
+config/local.yaml
