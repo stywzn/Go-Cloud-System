@@ -16,7 +16,7 @@ func StartAsyncFlusher() {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
-	// 准备一个切片，像一个小推车，用来在内存里暂存这 5 秒内收到的任务
+	// 准备一个切片，用来在内存里暂存这 5 秒内收到的任务
 	var batchRecords []model.LikeRecord
 
 	log.Println("后台异步落盘引擎已启动，正在监听 LikeQueue...")
@@ -33,8 +33,6 @@ func StartAsyncFlusher() {
 			}
 			batchRecords = append(batchRecords, record)
 
-			// 如果突发流量太大，不到 5 秒推车就装满了（比如 500 条）
-			// 绝不能死等时间，立刻强行发车落盘，防止占用过多内存！
 			if len(batchRecords) >= 500 {
 				flushToDB(batchRecords)
 				batchRecords = nil // 清空推车，准备接下一批

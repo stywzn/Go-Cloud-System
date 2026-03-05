@@ -30,7 +30,7 @@ func HandleLike(c *gin.Context) {
 	}
 
 	// 获取当前登录的用户 ID
-	// (在咱们目前的 V1.0 里先写死。明天讲安全中间件时，这里会换成从 JWT 解析出来的真实 ID)
+	// (在咱们目前的 V1.0 里先写死。增加安全中间件时，这里会换成从 JWT 解析出来的真实 ID)
 	userID := 1001
 
 	// 呼叫后台 Service 核心兵力 (也就是去打 Redis 和进 Channel)

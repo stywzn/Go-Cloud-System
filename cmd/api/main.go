@@ -23,9 +23,14 @@ func main() {
 	// 初始化 Gin 框架引擎
 	r := gin.Default()
 
-	// 新增 装配第一道防线：全局应用安全头
+	// 服务的第一层安全防护  
+	// 强制浏览器不要瞎猜内容类型，严格按照我们返回的 Content-Type 解析
+	// 禁止别的网站用 iframe 嵌套我们的接口（防点击劫持）
+	// 开启浏览器级别的 XSS 防护
+	// 放行，进入下一个环节
 	r.Use(api.SecurityHeadersMiddleware())
 
+	// 健康检查接口
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{"msg": "pong! 服务已启动"})
 	})
@@ -33,7 +38,7 @@ func main() {
 	// 暴露点赞接口
 	v1 := r.Group("/api/v1")
 
-	// 新增 装配第二道防线：针对核心业务接口开启 IP 限流
+	// 开启 IP 限流
 	v1.Use(api.RateLimitMiddleware())
 	{
 		v1.POST("/like", api.HandleLike)
@@ -53,7 +58,7 @@ func main() {
 		}
 	}()
 
-	// 优雅停机防线
+	// 优雅停机
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit

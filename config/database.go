@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/stywzn/Go-Interaction-Service/internal/model" // 引入你的 model
+	"github.com/stywzn/Go-Interaction-Service/internal/model" 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -29,7 +29,7 @@ func InitConfig() {
 	if err != nil {
 		log.Fatalf(" MySQL 自动建表失败: %v", err)
 	}
-	DB = db
+	DB = db  
 	fmt.Println(" MySQL 连接成功，且数据表已就绪!")
 
 	// 连接 redis
