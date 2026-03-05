@@ -5,6 +5,14 @@ import (
 )
 
 type StorageEngine interface {
-	// Put 将数据流写入存储，返回写入的字节数和可能的错误
 	Put(key string, r io.Reader, size int64) error
+	InitUpload(uploadID string) error
+	UploadPart(uploadID string, partNumber int, r io.Reader, size int64) error // 修复：partNumber 是 int
+	CompleteUpload(uploadID string, parts []Part) (string, error)
+	AbortUpload(uploadID string) error
+}
+
+type Part struct {
+	PartNumber int
+	ETag       string
 }

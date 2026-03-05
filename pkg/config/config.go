@@ -10,6 +10,8 @@ import (
 type Config struct {
 	Server   ServerConfig   `mapstructure:"server"`
 	Database DatabaseConfig `mapstructure:"database"`
+	Storage  StorageConfig  `mapstructure:"storage"`
+	MinIO    MinIOConfig    `mapstructure:"minio"`
 }
 
 type ServerConfig struct {
@@ -22,6 +24,18 @@ type DatabaseConfig struct {
 	DSN string `mapstructure:"dsn"`
 }
 
+type StorageConfig struct {
+	Type string `mapstructure:"type"` // "local" 或 "minio"
+}
+
+type MinIOConfig struct {
+	Endpoint  string `mapstructure:"endpoint"`
+	AccessKey string `mapstructure:"access_key"`
+	SecretKey string `mapstructure:"secret_key"`
+	Bucket    string `mapstructure:"bucket"`
+	UseSSL    bool   `mapstructure:"use_ssl"`
+}
+
 var GlobalConfig *Config
 
 func LoadConfig() {
@@ -29,6 +43,13 @@ func LoadConfig() {
 	viper.SetDefault("server.port", "8080")
 	viper.SetDefault("server.storage_path", "./uploads")
 	viper.SetDefault("server.max_file_size", 104857600) // 100MB
+	viper.SetDefault("storage.type", "local")           // local or minio
+	viper.SetDefault("minio.endpoint", "localhost:9000")
+	viper.SetDefault("minio.access_key", "minioadmin")
+	viper.SetDefault("minio.secret_key", "minioadmin")
+	viper.SetDefault("minio.bucket", "cloud-storage")
+	viper.SetDefault("minio.use_ssl", false)
+
 	//配置文件设置
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")

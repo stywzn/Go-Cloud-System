@@ -1,5 +1,5 @@
 package e
-
+// 错误码定义			
 const (
 	SUCCESS        = 200
 	ERROR          = 500

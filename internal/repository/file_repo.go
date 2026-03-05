@@ -21,7 +21,7 @@ type fileRepository struct {
 func NewFileRepository(db *gorm.DB) FileRepository {
 	return &fileRepository{db: db}
 }
-
+//创建文件
 func (r *fileRepository) Create(ctx context.Context, file *model.File) error {
 	return r.db.WithContext(ctx).Create(file).Error
 }
