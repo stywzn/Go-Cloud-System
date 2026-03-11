@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-config    
+data: 
+  config.yaml: |
+    server: 
+      port: ":8080"
+    jwt:
+      secret: "k8s-super-secret-key-123456"
+    routes:
+      # target_url  变成 微服务在 k8s 集群里的名字
+      -path_prefix: "/interaction"
+        target_url: "http://interaction-service:8080"
+      -path_prefix: "storage"
+        target_url: "http://storage-service:8080"
+      -path_prefix: "compute"
+        target_url: "http://compute-service:8080"

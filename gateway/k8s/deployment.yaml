@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secure-gateway
+  labels:
+    app: gateway
+spec:
+  replicas: 2 #启动 2 个网关实例做高可用
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      containers:
+      - name: gateway
+        image: my-secure-gateway:v1.0  # Dockerfile 打包的名字
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        
+        # 挂载配置目录
+        volumeMounts:
+        - name: config-volume
+          mountPath: /root/configs # 对应 Dockerfile 里的工作目录
+          
+        # 存活探针 (如果网关死锁了，K8s 会自动重启它)
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          
+        # 就绪探针 (只有返回 200，K8s 才会把流量放给这个节点)
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8080
+          initialDelaySeconds: 2
+          periodSeconds: 5
+          
+      # 声明配置卷
+      volumes:
+      - name: config-volume
+        configMap:
+          name: gateway-config
