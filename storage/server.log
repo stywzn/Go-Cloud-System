@@ -1,0 +1,248 @@
+nohup: ignoring input
+2026/03/06 00:25:21 Config loaded successfully
+2026-03-06T00:25:21.322+0800	INFO	server/main.go:37	Database initialized successfully
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.106ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.609ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'cloud_storage%' ORDER BY SCHEMA_NAME='cloud_storage' DESC,SCHEMA_NAME limit 1
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.793ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'cloud_storage' AND table_name = 'users' AND table_type = 'BASE TABLE'
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.125ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.454ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'cloud_storage%' ORDER BY SCHEMA_NAME='cloud_storage' DESC,SCHEMA_NAME limit 1
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.304ms] [34;1m[rows:-][0m SELECT * FROM `users` LIMIT 1
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.727ms] [34;1m[rows:-][0m SELECT column_name, column_default, is_nullable = 'YES', data_type, character_maximum_length, column_type, column_key, extra, column_comment, numeric_precision, numeric_scale , datetime_precision FROM information_schema.columns WHERE table_schema = 'cloud_storage' AND table_name = 'users' ORDER BY ORDINAL_POSITION
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.118ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.351ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'cloud_storage%' ORDER BY SCHEMA_NAME='cloud_storage' DESC,SCHEMA_NAME limit 1
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.836ms] [34;1m[rows:3][0m 
+SELECT
+	TABLE_NAME,
+	COLUMN_NAME,
+	INDEX_NAME,
+	NON_UNIQUE 
+FROM
+	information_schema.STATISTICS 
+WHERE
+	TABLE_SCHEMA = 'cloud_storage' 
+	AND TABLE_NAME = 'users' 
+ORDER BY
+	INDEX_NAME,
+	SEQ_IN_INDEX
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.118ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.348ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'cloud_storage%' ORDER BY SCHEMA_NAME='cloud_storage' DESC,SCHEMA_NAME limit 1
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.600ms] [34;1m[rows:-][0m SELECT count(*) FROM INFORMATION_SCHEMA.table_constraints WHERE constraint_schema = 'cloud_storage' AND table_name = 'users' AND constraint_name = 'uni_users_username'
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.113ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.347ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'cloud_storage%' ORDER BY SCHEMA_NAME='cloud_storage' DESC,SCHEMA_NAME limit 1
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.568ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'cloud_storage' AND table_name = 'users' AND index_name = 'idx_users_deleted_at'
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.109ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.369ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'cloud_storage%' ORDER BY SCHEMA_NAME='cloud_storage' DESC,SCHEMA_NAME limit 1
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.606ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'cloud_storage' AND table_name = 'files' AND table_type = 'BASE TABLE'
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.108ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.386ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'cloud_storage%' ORDER BY SCHEMA_NAME='cloud_storage' DESC,SCHEMA_NAME limit 1
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.332ms] [34;1m[rows:-][0m SELECT * FROM `files` LIMIT 1
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.717ms] [34;1m[rows:-][0m SELECT column_name, column_default, is_nullable = 'YES', data_type, character_maximum_length, column_type, column_key, extra, column_comment, numeric_precision, numeric_scale , datetime_precision FROM information_schema.columns WHERE table_schema = 'cloud_storage' AND table_name = 'files' ORDER BY ORDINAL_POSITION
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.119ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.467ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'cloud_storage%' ORDER BY SCHEMA_NAME='cloud_storage' DESC,SCHEMA_NAME limit 1
+
+2026/03/06 00:25:21 [32m
+[0m[33m[1.009ms] [34;1m[rows:3][0m 
+SELECT
+	TABLE_NAME,
+	COLUMN_NAME,
+	INDEX_NAME,
+	NON_UNIQUE 
+FROM
+	information_schema.STATISTICS 
+WHERE
+	TABLE_SCHEMA = 'cloud_storage' 
+	AND TABLE_NAME = 'files' 
+ORDER BY
+	INDEX_NAME,
+	SEQ_IN_INDEX
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.119ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.356ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'cloud_storage%' ORDER BY SCHEMA_NAME='cloud_storage' DESC,SCHEMA_NAME limit 1
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.601ms] [34;1m[rows:-][0m SELECT count(*) FROM INFORMATION_SCHEMA.table_constraints WHERE constraint_schema = 'cloud_storage' AND table_name = 'files' AND constraint_name = 'uni_files_hash'
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.118ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.343ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'cloud_storage%' ORDER BY SCHEMA_NAME='cloud_storage' DESC,SCHEMA_NAME limit 1
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.566ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'cloud_storage' AND table_name = 'files' AND index_name = 'idx_files_hash'
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.132ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.389ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'cloud_storage%' ORDER BY SCHEMA_NAME='cloud_storage' DESC,SCHEMA_NAME limit 1
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.588ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'cloud_storage' AND table_name = 'files' AND index_name = 'idx_files_deleted_at'
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.122ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.393ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'cloud_storage%' ORDER BY SCHEMA_NAME='cloud_storage' DESC,SCHEMA_NAME limit 1
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.547ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'cloud_storage' AND table_name = 'files' AND index_name = 'idx_files_hash'
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.103ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.363ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'cloud_storage%' ORDER BY SCHEMA_NAME='cloud_storage' DESC,SCHEMA_NAME limit 1
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.588ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'cloud_storage' AND table_name = 'upload_tasks' AND table_type = 'BASE TABLE'
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.123ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.380ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'cloud_storage%' ORDER BY SCHEMA_NAME='cloud_storage' DESC,SCHEMA_NAME limit 1
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.328ms] [34;1m[rows:-][0m SELECT * FROM `upload_tasks` LIMIT 1
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.781ms] [34;1m[rows:-][0m SELECT column_name, column_default, is_nullable = 'YES', data_type, character_maximum_length, column_type, column_key, extra, column_comment, numeric_precision, numeric_scale , datetime_precision FROM information_schema.columns WHERE table_schema = 'cloud_storage' AND table_name = 'upload_tasks' ORDER BY ORDINAL_POSITION
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.142ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.459ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'cloud_storage%' ORDER BY SCHEMA_NAME='cloud_storage' DESC,SCHEMA_NAME limit 1
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.747ms] [34;1m[rows:4][0m 
+SELECT
+	TABLE_NAME,
+	COLUMN_NAME,
+	INDEX_NAME,
+	NON_UNIQUE 
+FROM
+	information_schema.STATISTICS 
+WHERE
+	TABLE_SCHEMA = 'cloud_storage' 
+	AND TABLE_NAME = 'upload_tasks' 
+ORDER BY
+	INDEX_NAME,
+	SEQ_IN_INDEX
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.135ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.363ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'cloud_storage%' ORDER BY SCHEMA_NAME='cloud_storage' DESC,SCHEMA_NAME limit 1
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.507ms] [34;1m[rows:-][0m SELECT count(*) FROM INFORMATION_SCHEMA.table_constraints WHERE constraint_schema = 'cloud_storage' AND table_name = 'upload_tasks' AND constraint_name = 'uni_upload_tasks_upload_id'
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.101ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.353ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'cloud_storage%' ORDER BY SCHEMA_NAME='cloud_storage' DESC,SCHEMA_NAME limit 1
+
+2026/03/06 00:25:21 [32m
+[0m[33m[0.532ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'cloud_storage' AND table_name = 'upload_tasks' AND index_name = 'idx_upload_tasks_upload_id'
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.104ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.383ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'cloud_storage%' ORDER BY SCHEMA_NAME='cloud_storage' DESC,SCHEMA_NAME limit 1
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.509ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'cloud_storage' AND table_name = 'upload_tasks' AND index_name = 'idx_upload_tasks_deleted_at'
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.108ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.324ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'cloud_storage%' ORDER BY SCHEMA_NAME='cloud_storage' DESC,SCHEMA_NAME limit 1
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.515ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'cloud_storage' AND table_name = 'upload_tasks' AND index_name = 'idx_upload_tasks_user_id'
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.110ms] [34;1m[rows:-][0m SELECT DATABASE()
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.335ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'cloud_storage%' ORDER BY SCHEMA_NAME='cloud_storage' DESC,SCHEMA_NAME limit 1
+
+2026/03/06 00:25:21 [32m/home/way/Code/Projects/go/Go-Cloud-Storage/cmd/server/main.go:138
+[0m[33m[0.509ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'cloud_storage' AND table_name = 'upload_tasks' AND index_name = 'idx_upload_tasks_upload_id'
+2026-03-06T00:25:21.349+0800	INFO	server/main.go:145	Database migrations completed
+2026-03-06T00:25:21.349+0800	INFO	server/main.go:60	Local storage initialized: ./uploads
+[GIN-debug] [WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
+
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] POST   /api/v1/upload            --> github.com/stywzn/Go-Cloud-Storage/internal/handler.(*FileHandler).UploadHandler-fm (3 handlers)
+[GIN-debug] POST   /api/v1/upload/init       --> github.com/stywzn/Go-Cloud-Storage/internal/handler.(*FileHandler).InitUpload-fm (4 handlers)
+[GIN-debug] PUT    /api/v1/upload/:upload_id/part/:part_number --> github.com/stywzn/Go-Cloud-Storage/internal/handler.(*FileHandler).UploadPart-fm (4 handlers)
+[GIN-debug] POST   /api/v1/upload/:upload_id/complete --> github.com/stywzn/Go-Cloud-Storage/internal/handler.(*FileHandler).CompleteUpload-fm (4 handlers)
+[GIN-debug] GET    /api/v1/upload/:upload_id/status --> github.com/stywzn/Go-Cloud-Storage/internal/handler.(*FileHandler).GetUploadStatus-fm (4 handlers)
+[GIN-debug] GET    /health                   --> main.setupRoutes.func1 (3 handlers)
+[GIN-debug] GET    /metrics                  --> main.setupRoutes.WrapF.func3 (3 handlers)
+2026-03-06T00:25:21.349+0800	INFO	server/main.go:87	Server starting on port 8080
+2026-03-06T00:25:21.349+0800	FATAL	server/main.go:89	Server startup failed: listen tcp :8080: bind: address already in use

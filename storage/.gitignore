@@ -1,0 +1,24 @@
+# --- 1. 编译产物 (Binaries) ---
+/bin/
+# 忽略根目录的 server (如果偶尔在根目录编译)
+server
+main
+main.exe
+*.exe
+*.dll
+
+# --- 2. 配置文件 (Secrets) ---
+config/config.yaml
+!config/config.example.yaml
+.env
+
+
+uploads/*
+# 保留 uploads 文件夹本身 (为了让别人 clone 下来时有这个空目录)
+!uploads/.gitkeep
+
+# --- 4. IDE 和 系统文件 (Junk) ---
+.idea/
+.vscode/
+.DS_Store
+note*
