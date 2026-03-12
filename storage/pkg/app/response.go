@@ -2,7 +2,7 @@ package app
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/stywzn/Go-Cloud-Storage/pkg/e"
+	"github.com/stywzn/Go-Cloud-System/storage/pkg/e"
 )
 
 type Gin struct {

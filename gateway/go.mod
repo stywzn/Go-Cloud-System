@@ -1,10 +1,12 @@
-module Go-Secure-Gateway
+module github.com/stywzn/Go-Cloud-System/gateway
 
 go 1.25.0
 
 require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/stywzn/Go-Cloud-System/pkg v0.0.0-00010101000000-000000000000
+	golang.org/x/time v0.15.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -37,6 +39,7 @@ require (
 	golang.org/x/net v0.51.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
-	golang.org/x/time v0.15.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
+
+replace github.com/stywzn/Go-Cloud-System/pkg => ../pkg

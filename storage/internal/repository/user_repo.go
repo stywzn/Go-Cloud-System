@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/stywzn/Go-Cloud-Storage/internal/model"
+	"github.com/stywzn/Go-Cloud-System/storage/internal/model"
 	"gorm.io/gorm"
 )
 

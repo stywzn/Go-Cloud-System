@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # 1. 关系型数据库：MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: gcs-mysql
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: cloud_system # 默认帮你建好这个库
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  # 2. 缓存与秒杀库存预扣减：Redis
+  redis:
+    image: redis:7.0-alpine
+    container_name: gcs-redis
+    restart: always
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+
+  # 3. 对象存储：MinIO
+  minio:
+    image: minio/minio
+    container_name: gcs-minio
+    restart: always
+    ports:
+      - "9000:9000"   # API 端口
+      - "9001:9001"   # Web UI 控制台端口
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password123
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+  # 4. 异步削峰消息队列：RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: gcs-rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"   # Go 代码连接用的 TCP 端口
+      - "15672:15672" # Web 后台管理界面 (账号密码 guest/guest)
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+volumes:
+  mysql_data:
+  redis_data:
+  minio_data:
+  rabbitmq_data:

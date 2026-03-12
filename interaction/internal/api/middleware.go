@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/stywzn/Go-Interaction-Service/config"
+	"github.com/stywzn/Go-Cloud-System/interaction/config"
 )
 
 // SecurityHeadersMiddleware 第一道防线：全局安全响应头

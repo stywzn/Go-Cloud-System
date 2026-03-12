@@ -1,51 +1,51 @@
-// 管理Prometheus 的指标
-
 package api
 
-import(
+import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // 定义指标
-// http请求总数，点赞总数，限流拦截总数
-
 var (
-	//http请求总数
-	httpRequestsTotal = prometheus.NewCounter(
+	// HTTP请求总数 (注意：带标签必须用 NewCounterVec)
+	httpRequestsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "interaction_service_http_requests_total",
 			Help: "Total number of HTTP requests handled by the interaction service",
 		},
-		[]string{"method", "path", "status"}
+		[]string{"method", "path", "status"},
 	)
-	//点赞总数
-	likesTotal = prometheus.NewCounter(
+
+	// 抽奖/秒杀请求总数 (替换掉旧的点赞指标)
+	seckillTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "interaction_service_likes_total",
-			Help: "Total number of likes/unlikes requests",
+			Name: "interaction_service_seckill_total",
+			Help: "Total number of lottery seckill requests",
 		},
-		[]string{"action","result"}
+		[]string{"result"}, // success, failed, duplicate
 	)
-	// 被限流拦截请求总数
-	reteLimiteBlocked = prometheus.NewCounter(
+
+	// 被限流拦截请求总数 (修复了拼写和缺少的逗号)
+	rateLimitBlockedTotal = prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Name: "interaction_service_rate_limit_blocked_total",
-			Help: "Total number of requests blocked by rate limiting",
-		}
+			Help: "Total number of requests blocked by rate limiting", // 这里的逗号非常重要
+		},
 	)
 )
 
-func InitMetrics() {
-
+// init 函数会在包被导入时自动执行，注册这些指标
+func init() {
+	prometheus.MustRegister(httpRequestsTotal)
+	prometheus.MustRegister(seckillTotal)
+	prometheus.MustRegister(rateLimitBlockedTotal)
 }
 
 func RecordHTTPRequest(method, path, status string) {
-	httpRequestsTotal.WithLabelValues(path,method,status).Inc()
+	httpRequestsTotal.WithLabelValues(method, path, status).Inc()
 }
 
-func RecordLikeRequest(action,result string) {
-	LikeRequestTotal.WithLabelValues(action,result).Inc()
+func RecordSeckillRequest(result string) {
+	seckillTotal.WithLabelValues(result).Inc()
 }
 
 func RecordRateLimitBlocked() {

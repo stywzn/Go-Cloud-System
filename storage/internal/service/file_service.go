@@ -12,10 +12,10 @@ import (
 	"mime/multipart"
 	"time"
 
-	"github.com/stywzn/Go-Cloud-Storage/internal/metrics"
-	"github.com/stywzn/Go-Cloud-Storage/internal/model"
-	"github.com/stywzn/Go-Cloud-Storage/internal/repository"
-	"github.com/stywzn/Go-Cloud-Storage/internal/storage"
+	"github.com/stywzn/Go-Cloud-System/storage/internal/metrics"
+	"github.com/stywzn/Go-Cloud-System/storage/internal/model"
+	"github.com/stywzn/Go-Cloud-System/storage/internal/repository"
+	"github.com/stywzn/Go-Cloud-System/storage/internal/storage"
 )
 
 type FileService interface {

@@ -1,12 +1,13 @@
 package main
 
 import (
-	"Go-Secure-Gateway/internal/config"
-	"Go-Secure-Gateway/internal/middleware"
-	"Go-Secure-Gateway/internal/proxy"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/stywzn/Go-Cloud-System/gateway/internal/config"
+	"github.com/stywzn/Go-Cloud-System/gateway/internal/middleware"
+	"github.com/stywzn/Go-Cloud-System/gateway/internal/proxy"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -35,7 +36,7 @@ func main() {
 			c.Next()
 			return
 		}
-		middleware.JWTAuth(cfg.JWT.Secret)(c)
+		middleware.JWTAuthMiddleware()
 	})
 
 	// 基础探针与工具接口

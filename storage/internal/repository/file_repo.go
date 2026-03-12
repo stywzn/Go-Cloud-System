@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/stywzn/Go-Cloud-Storage/internal/model"
+	"github.com/stywzn/Go-Cloud-System/storage/internal/model"
 	"gorm.io/gorm"
 )
 
@@ -21,7 +21,8 @@ type fileRepository struct {
 func NewFileRepository(db *gorm.DB) FileRepository {
 	return &fileRepository{db: db}
 }
-//创建文件
+
+// 创建文件
 func (r *fileRepository) Create(ctx context.Context, file *model.File) error {
 	return r.db.WithContext(ctx).Create(file).Error
 }

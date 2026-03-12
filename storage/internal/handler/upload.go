@@ -5,8 +5,8 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/stywzn/Go-Cloud-Storage/internal/middleware"
-	"github.com/stywzn/Go-Cloud-Storage/internal/service"
+	"github.com/stywzn/Go-Cloud-System/storage/internal/middleware"
+	"github.com/stywzn/Go-Cloud-System/storage/internal/service"
 )
 
 type FileHandler struct {

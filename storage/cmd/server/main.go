@@ -10,15 +10,15 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/stywzn/Go-Cloud-Storage/internal/handler"
-	"github.com/stywzn/Go-Cloud-Storage/internal/middleware"
-	"github.com/stywzn/Go-Cloud-Storage/internal/model"
-	"github.com/stywzn/Go-Cloud-Storage/internal/repository"
-	"github.com/stywzn/Go-Cloud-Storage/internal/service"
-	"github.com/stywzn/Go-Cloud-Storage/internal/storage"
-	"github.com/stywzn/Go-Cloud-Storage/pkg/config"
-	"github.com/stywzn/Go-Cloud-Storage/pkg/db"
-	"github.com/stywzn/Go-Cloud-Storage/pkg/logger"
+	"github.com/stywzn/Go-Cloud-System/storage/internal/handler"
+	"github.com/stywzn/Go-Cloud-System/storage/internal/middleware"
+	"github.com/stywzn/Go-Cloud-System/storage/internal/model"
+	"github.com/stywzn/Go-Cloud-System/storage/internal/repository"
+	"github.com/stywzn/Go-Cloud-System/storage/internal/service"
+	"github.com/stywzn/Go-Cloud-System/storage/internal/storage"
+	"github.com/stywzn/Go-Cloud-System/storage/pkg/config"
+	"github.com/stywzn/Go-Cloud-System/storage/pkg/db"
+	"github.com/stywzn/Go-Cloud-System/storage/pkg/logger"
 )
 
 func main() {

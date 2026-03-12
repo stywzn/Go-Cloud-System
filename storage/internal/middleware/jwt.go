@@ -3,87 +3,39 @@ package middleware
 import (
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 )
 
-var JWTSecret = "your-secret-key"
-
-// JWT claims structure
-type Claims struct {
-	UserID uint   `json:"user_id"`
-	Name   string `json:"name"`
-	jwt.RegisteredClaims
-}
-
-// JWTAuth 验证JWT token的中间件
+// JWTAuth 替换原有的 JWT 逻辑，现在只作为内部信任网关的 Header 提取器
 func JWTAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			// 简化：没有token则为游客（userID=1）
-			c.Set("user_id", uint(1))
-			c.Next()
-			return
-		}
-
-		// 提取token
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization header"})
+		// 直接读取网关透传的 Header
+		userIDStr := c.GetHeader("X-User-Id")
+		if userIDStr == "" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "禁止访问：缺少内部网关鉴权头"})
 			c.Abort()
 			return
 		}
 
-		tokenString := parts[1]
-
-		// 解析token
-		token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-			return []byte(JWTSecret), nil
-		})
-
-		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+		userID, err := strconv.Atoi(userIDStr)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "无效的用户 ID"})
 			c.Abort()
 			return
 		}
 
-		claims, ok := token.Claims.(*Claims)
-		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid claims"})
-			c.Abort()
-			return
-		}
-
-		// 将userID保存到context
-		c.Set("user_id", claims.UserID)
+		// 存入 Gin Context，你的 handler（比如 upload.go）直接用 c.Get("user_id") 获取即可
+		c.Set("user_id", userID)
 		c.Next()
 	}
 }
 
-// 从context中获取userID
+// GetUserID 从 Context 中获取透传的用户 ID
 func GetUserID(c *gin.Context) uint {
-	val, exists := c.Get("user_id")
+	id, exists := c.Get("user_id")
 	if !exists {
-		return 1
+		return 0
 	}
-
-	// 尝试多种类型
-	switch v := val.(type) {
-	case uint:
-		return v
-	case uint64:
-		return uint(v)
-	case int:
-		return uint(v)
-	case int64:
-		return uint(v)
-	case string:
-		u, _ := strconv.ParseUint(v, 10, 64)
-		return uint(u)
-	default:
-		return 1
-	}
+	return uint(id.(int)) // 强转为 uint
 }
