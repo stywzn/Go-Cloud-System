@@ -1,0 +1,21 @@
+# Binaries and compiled files
+bin/
+main
+*.exe
+*.test
+
+# Go workspace
+go.work
+go.work.sum
+
+# Storage uploads (Don't push user files!)
+storage/uploads/
+*.tar.gz
+
+# Environment variables & IDE
+.env
+.vscode/
+.idea/
+
+# OS specific files
+.DS_Store
