@@ -7,8 +7,8 @@ jwt:
 # dynamic route table
 routes:
   - path_prefix: "/interaction"
-    target_url: "http://localhost:8081"
-  - path_prefix: "storage"
     target_url: "http://localhost:8082"
-  - path_prefix: "compute"
+  - path_prefix: "storage"
     target_url: "http://localhost:8083"
+  - path_prefix: "compute"
+    target_url: "http://localhost:8084"

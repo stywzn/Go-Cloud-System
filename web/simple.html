@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Cloud System - 简化版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            font-size: 2rem;
+            color: #4a5568;
+            margin-bottom: 5px;
+        }
+
+        .logo p {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        .toggle-form {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .toggle-form a {
+            color: #667eea;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .toggle-form a:hover {
+            text-decoration: underline;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 2000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: #48bb78;
+        }
+
+        .notification.error {
+            background: #f56565;
+        }
+
+        .notification.info {
+            background: #4299e1;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .user-info {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .user-info h3 {
+            margin-bottom: 10px;
+            color: #4a5568;
+        }
+
+        .user-info p {
+            margin-bottom: 5px;
+            color: #718096;
+        }
+
+        .quota-display {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .file-upload {
+            margin: 20px 0;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-label {
+            display: block;
+            padding: 12px;
+            background: #e2e8f0;
+            color: #4a5568;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .file-label:hover {
+            background: #cbd5e0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>🚀 Go Cloud</h1>
+            <p>云存储与抽奖系统</p>
+        </div>
+
+        <!-- 登录表单 -->
+        <div id="login-form" class="auth-form">
+            <div class="form-group">
+                <label for="login-username">用户名</label>
+                <input type="text" id="login-username" placeholder="请输入用户名">
+            </div>
+            <div class="form-group">
+                <label for="login-password">密码</label>
+                <input type="password" id="login-password" placeholder="请输入密码">
+            </div>
+            <button class="btn" onclick="login()">登录</button>
+            <div class="toggle-form">
+                还没有账号？<a onclick="showRegister()">立即注册</a>
+            </div>
+        </div>
+
+        <!-- 注册表单 -->
+        <div id="register-form" class="auth-form hidden">
+            <div class="form-group">
+                <label for="register-username">用户名</label>
+                <input type="text" id="register-username" placeholder="请输入用户名">
+            </div>
+            <div class="form-group">
+                <label for="register-password">密码</label>
+                <input type="password" id="register-password" placeholder="请输入密码">
+            </div>
+            <button class="btn" onclick="register()">注册</button>
+            <div class="toggle-form">
+                已有账号？<a onclick="showLogin()">立即登录</a>
+            </div>
+        </div>
+
+        <!-- 用户界面 -->
+        <div id="user-panel" class="hidden">
+            <div class="user-info">
+                <h3>👤 用户信息</h3>
+                <p>用户名: <span id="username">-</span></p>
+                <p>存储配额: <span id="user-quota" class="quota-display">-</span></p>
+            </div>
+
+            <button class="btn" onclick="tryLottery()">🎁 参与抽奖 (赢4GB配额)</button>
+            <button class="btn btn-secondary" onclick="logout()">退出登录</button>
+
+            <div class="file-upload">
+                <input type="file" id="file-input" class="file-input" onchange="uploadFile()">
+                <label for="file-input" class="file-label">📁 选择文件上传</label>
+                <div class="progress-bar" id="upload-progress" style="display: none;">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通知提示 -->
+    <div id="notification" class="notification"></div>
+
+    <script>
+        let currentUser = null;
+        let authToken = null;
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuthStatus();
+        });
+
+        // 检查认证状态
+        function checkAuthStatus() {
+            const token = localStorage.getItem('auth_token');
+            const user = localStorage.getItem('current_user');
+            
+            if (token && user) {
+                authToken = token;
+                currentUser = JSON.parse(user);
+                showUserPanel();
+                refreshUserInfo();
+            }
+        }
+
+        // 显示登录表单
+        function showLogin() {
+            document.getElementById('login-form').classList.remove('hidden');
+            document.getElementById('register-form').classList.add('hidden');
+            document.getElementById('user-panel').classList.add('hidden');
+        }
+
+        // 显示注册表单
+        function showRegister() {
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('register-form').classList.remove('hidden');
+            document.getElementById('user-panel').classList.add('hidden');
+        }
+
+        // 显示用户面板
+        function showUserPanel() {
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('register-form').classList.add('hidden');
+            document.getElementById('user-panel').classList.remove('hidden');
+            
+            if (currentUser) {
+                document.getElementById('username').textContent = currentUser.username;
+                document.getElementById('user-quota').textContent = formatBytes(currentUser.quota);
+            }
+        }
+
+        // 注册
+        async function register() {
+            const username = document.getElementById('register-username').value.trim();
+            const password = document.getElementById('register-password').value.trim();
+
+            if (!username || !password) {
+                showNotification('请填写完整信息', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:8080/interaction/api/v1/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+                
+                if (response.status === 201) {
+                    showNotification('注册成功！请登录', 'success');
+                    showLogin();
+                    // 清空表单
+                    document.getElementById('register-username').value = '';
+                    document.getElementById('register-password').value = '';
+                } else {
+                    showNotification(data.error || '注册失败', 'error');
+                }
+            } catch (error) {
+                showNotification('网络错误: ' + error.message, 'error');
+            }
+        }
+
+        // 登录
+        async function login() {
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value.trim();
+
+            if (!username || !password) {
+                showNotification('请填写完整信息', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:8080/interaction/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+                
+                if (response.status === 200) {
+                    authToken = data.token;
+                    currentUser = {
+                        id: data.user_id,
+                        username: data.username,
+                        quota: data.quota
+                    };
+                    
+                    // 保存到本地存储
+                    localStorage.setItem('auth_token', authToken);
+                    localStorage.setItem('current_user', JSON.stringify(currentUser));
+                    
+                    showNotification('登录成功！', 'success');
+                    showUserPanel();
+                } else {
+                    showNotification(data.error || '登录失败', 'error');
+                }
+            } catch (error) {
+                showNotification('网络错误: ' + error.message, 'error');
+            }
+        }
+
+        // 退出登录
+        function logout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('current_user');
+            showLogin();
+            showNotification('已退出登录', 'info');
+        }
+
+        // 刷新用户信息
+        async function refreshUserInfo() {
+            if (!authToken) return;
+
+            try {
+                const response = await fetch('http://localhost:8080/interaction/api/v1/user/info', {
+                    headers: {
+                        'X-User-Id': authToken
+                    }
+                });
+
+                if (response.status === 200) {
+                    const data = await response.json();
+                    currentUser = data.user;
+                    localStorage.setItem('current_user', JSON.stringify(currentUser));
+                    
+                    document.getElementById('username').textContent = currentUser.username;
+                    document.getElementById('user-quota').textContent = formatBytes(currentUser.quota);
+                }
+            } catch (error) {
+                console.error('刷新用户信息失败:', error);
+            }
+        }
+
+        // 参与抽奖
+        async function tryLottery() {
+            if (!authToken) {
+                showNotification('请先登录', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:8080/interaction/api/v1/lottery/seckill', {
+                    method: 'POST',
+                    headers: {
+                        'X-User-Id': authToken
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.status === 202) {
+                    showNotification('🎉 恭喜中奖！获得4GB存储配额！', 'success');
+                    // 刷新用户信息
+                    setTimeout(refreshUserInfo, 1000);
+                } else {
+                    showNotification(data.error || '抽奖失败', 'error');
+                }
+            } catch (error) {
+                showNotification('抽奖请求失败: ' + error.message, 'error');
+            }
+        }
+
+        // 文件上传
+        async function uploadFile() {
+            const fileInput = document.getElementById('file-input');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showNotification('请选择文件', 'error');
+                return;
+            }
+
+            if (!authToken) {
+                showNotification('请先登录', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // 显示进度条
+            const progressContainer = document.getElementById('upload-progress');
+            const progressFill = document.getElementById('progress-fill');
+            progressContainer.style.display = 'block';
+
+            try {
+                const xhr = new XMLHttpRequest();
+                
+                // 上传进度
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (e.lengthComputable) {
+                        const percentComplete = (e.loaded / e.total) * 100;
+                        progressFill.style.width = percentComplete + '%';
+                    }
+                });
+
+                // 完成上传
+                xhr.addEventListener('load', function() {
+                    if (xhr.status === 200) {
+                        showNotification('文件上传成功！', 'success');
+                        refreshUserInfo(); // 刷新配额信息
+                    } else {
+                        showNotification('文件上传失败', 'error');
+                    }
+                    progressContainer.style.display = 'none';
+                    progressFill.style.width = '0%';
+                    fileInput.value = '';
+                });
+
+                // 错误处理
+                xhr.addEventListener('error', function() {
+                    showNotification('上传过程中发生错误', 'error');
+                    progressContainer.style.display = 'none';
+                    progressFill.style.width = '0%';
+                });
+
+                xhr.open('POST', 'http://localhost:8080/storage/upload');
+                xhr.setRequestHeader('X-User-Id', authToken);
+                xhr.send(formData);
+
+            } catch (error) {
+                showNotification('文件上传失败: ' + error.message, 'error');
+                progressContainer.style.display = 'none';
+                progressFill.style.width = '0%';
+            }
+        }
+
+        // 显示通知
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // 格式化字节数
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gcs-app
+  namespace: gcs-system
+  labels:
+    app: gcs-app
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: gcs-app
+  template:
+    metadata:
+      labels:
+        app: gcs-app
+        version: v1
+    spec:
+      containers:
+      - name: gcs-app
+        image: gcs-app:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: gateway
+        - containerPort: 8081
+          name: interaction
+        - containerPort: 8082
+          name: storage
+        - containerPort: 8084
+          name: frontend
+        env:
+        - name: GIN_MODE
+          value: "release"
+        - name: TZ
+          value: "Asia/Shanghai"
+        - name: MYSQL_HOST
+          value: "mysql-service"
+        - name: REDIS_HOST
+          value: "redis-service"
+        - name: RABBITMQ_HOST
+          value: "rabbitmq-service"
+        - name: MINIO_HOST
+          value: "minio-service"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gcs-app-service
+  namespace: gcs-system
+spec:
+  selector:
+    app: gcs-app
+  ports:
+  - name: gateway
+    port: 8080
+    targetPort: 8080
+  - name: interaction
+    port: 8081
+    targetPort: 8081
+  - name: storage
+    port: 8082
+    targetPort: 8082
+  - name: frontend
+    port: 8084
+    targetPort: 8084
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gcs-app-ingress
+  namespace: gcs-system
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+  - host: gcs.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gcs-app-service
+            port:
+              number: 8084
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: gcs-app-service
+            port:
+              number: 8080

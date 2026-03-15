@@ -8,7 +8,7 @@ import (
 )
 
 type RouteConfig struct {
-	PathPrefic string `yaml:"path_prefix"`
+	PathPrefix string `yaml:"path_prefix"`
 	TargetURL  string `yaml:"target_url"`
 }
 

@@ -1,4 +1,4 @@
-.PHONY: infra-up infra-down run-all stop-all
+.PHONY: infra-up infra-down run-all stop-all run-web
 
 # 一键启动所有底层中间件
 infra-up:
@@ -19,9 +19,18 @@ run-all:
 	cd storage && go run ./cmd/server/main.go &
 	@echo "All services are running in background. Use 'make stop-all' to terminate."
 
+# 启动前端服务
+run-web:
+	@echo "Starting Web Frontend..."
+	cd web && go run server.go
+
 # 一键杀死所有运行的微服务
 stop-all:
 	pkill -f "go run ./cmd/gateway/main.go" || true
 	pkill -f "go run ./cmd/api/main.go" || true
 	pkill -f "go run ./cmd/server/main.go" || true
+	pkill -f "go run server.go" || true
 	@echo "All microservices stopped."
+
+# 一键启动完整系统 (包括前端)
+run-full: run-all run-web

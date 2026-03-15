@@ -9,7 +9,7 @@ import (
 
 func RequireUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userIDStr := c.GetHeader("X-USer-ID")
+		userIDStr := c.GetHeader("X-User-Id")
 		if userIDStr == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Forbidden: missing internal authentication header"})
 			c.Abort()
