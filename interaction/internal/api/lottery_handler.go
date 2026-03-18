@@ -16,7 +16,13 @@ func SeckillHandler(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "未获取到用户身份"})
 		return
 	}
-	userID := userIDVal.(int)
+	// Safe type assertion
+	userID, ok := userIDVal.(int)
+	if !ok {
+		// If it might be a float64 (common with JSON numbers) or string, handle it here
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error: user_id type mismatch"})
+		return
+	}
 
 	// 调用底层秒杀业务逻辑
 	err := service.DoSeckill(c.Request.Context(), userID)

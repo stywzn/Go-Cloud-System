@@ -9,48 +9,53 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-// DeadLetterMessage 死信消息结构
+// DeadLetterMessage structure for DLQ events
 type DeadLetterMessage struct {
 	QuotaUpgradeEvent QuotaUpgradeEvent `json:"event"`
-	OriginalMessage   amqp.Delivery     `json:"original_message"`
 	FailureReason     string            `json:"failure_reason"`
-	RetryCount        int               `json:"retry_count"`
-	FirstFailedAt     time.Time         `json:"first_failed_at"`
+	RetryCount        int32             `json:"retry_count"`
 	LastFailedAt      time.Time         `json:"last_failed_at"`
 	TraceID           string            `json:"trace_id"`
 }
 
-// QuotaUpgradeEvent 配额升级事件
+// QuotaUpgradeEvent payload
 type QuotaUpgradeEvent struct {
 	UserID   int    `json:"user_id"`
 	QuotaAdd int64  `json:"quota_add"`
 	EventID  string `json:"event_id"`
 }
 
-// StartDLQMonitor 启动死信队列监控
+// StartDLQMonitor starts the background consumer for the Dead Letter Queue
 func StartDLQMonitor(ctx context.Context) {
-	log.Println("启动死信队列监控...")
+	log.Println("Starting DLQ Monitor...")
 
-	// 创建死信队列消费者
-	msgs, err := Channel.Consume(
-		"storage.quota.queue.dlq", // 队列名称
-		"dlq-monitor",             // 消费者标签
-		false,                     // 自动确认
-		false,                     // 独占
-		false,                     // 不等待
-		false,                     // 参数
+	// 1. Get an independent channel for the DLQ consumer
+	consumeCh, err := GetChannel()
+	if err != nil {
+		log.Printf("Failed to get channel for DLQ consumer: %v", err)
+		return
+	}
+
+	msgs, err := consumeCh.Consume(
+		"storage.quota.queue.dlq",
+		"dlq-monitor",
+		false, // Auto-Ack MUST be false for reliability
+		false,
+		false,
+		false,
 		nil,
 	)
 	if err != nil {
-		log.Printf("死信队列消费者创建失败: %v", err)
+		log.Printf("Failed to register DLQ consumer: %v", err)
 		return
 	}
 
 	go func() {
+		defer consumeCh.Close() // Ensure consumer channel is closed on exit
 		for {
 			select {
 			case <-ctx.Done():
-				log.Println("死信队列监控停止")
+				log.Println("DLQ Monitor shutting down...")
 				return
 			case msg := <-msgs:
 				handleDeadLetter(ctx, msg)
@@ -59,7 +64,6 @@ func StartDLQMonitor(ctx context.Context) {
 	}()
 }
 
-// handleDeadLetter 处理死信消息
 func handleDeadLetter(ctx context.Context, msg amqp.Delivery) {
 	traceID := ""
 	if headers, ok := msg.Headers["X-Trace-ID"]; ok {
@@ -68,86 +72,103 @@ func handleDeadLetter(ctx context.Context, msg amqp.Delivery) {
 		}
 	}
 
-	log.Printf("[TraceID: %s] 收到死信消息: %s", traceID, string(msg.Body))
-
-	// 解析原始消息
 	var event QuotaUpgradeEvent
 	if err := json.Unmarshal(msg.Body, &event); err != nil {
-		log.Printf("[TraceID: %s] 解析死信消息失败: %v", traceID, err)
-		msg.Nack(false, false) // 拒绝消息，不重新入队
+		log.Printf("[TraceID: %s] Failed to parse DLQ message body: %v", traceID, err)
+		// Malformed message, reject permanently
+		msg.Nack(false, false)
 		return
 	}
 
-	// 记录死信消息信息
-	dlqMsg := DeadLetterMessage{
-		QuotaUpgradeEvent: event,
-		OriginalMessage:   msg,
-		FailureReason:     "处理失败或超时",
-		LastFailedAt:      time.Now(),
-		TraceID:           traceID,
+	retryCount := getRetryCount(msg)
+
+	if retryCount < 3 {
+		// Process retry asynchronously to avoid blocking the consumer pipeline
+		go processRetry(ctx, msg, traceID, retryCount)
+	} else {
+		// 3. Prevent Data Loss: Max retries reached, MUST persist manually
+		persistFailedMessage(event, traceID, retryCount)
+		// Safe to Ack only after permanent persistence
+		msg.Ack(false)
 	}
-
-	// 这里可以：
-	// 1. 记录到数据库
-	// 2. 发送告警通知
-	// 3. 手动重试逻辑
-	log.Printf("[TraceID: %s] 死信消息详情: %+v", traceID, dlqMsg)
-
-	// 根据业务逻辑决定是否重试
-	if shouldRetry(msg) {
-		log.Printf("[TraceID: %s] 尝试重新投递消息", traceID)
-		republishMessage(ctx, msg, traceID)
-	}
-
-	// 确认死信消息处理完成
-	msg.Ack(false)
 }
 
-// shouldRetry 判断是否应该重试
-func shouldRetry(msg amqp.Delivery) bool {
-	// 检查重试次数
-	if retryCount, ok := msg.Headers["x-retry-count"]; ok {
-		if count, ok := retryCount.(int32); ok && count >= 3 {
-			return false // 超过最大重试次数
-		}
-	}
-	return true
-}
+// processRetry handles exponential backoff and republishing
+func processRetry(ctx context.Context, msg amqp.Delivery, traceID string, currentRetry int32) {
+	// 2. Exponential Backoff: wait 5s, then 10s, then 20s...
+	delay := time.Duration(1<<currentRetry) * 5 * time.Second
+	log.Printf("[TraceID: %s] Delaying retry #%d for %v...", traceID, currentRetry+1, delay)
 
-// republishMessage 重新发布消息
-func republishMessage(ctx context.Context, originalMsg amqp.Delivery, traceID string) {
-	// 增加重试次数
-	retryCount := int32(0)
-	if count, ok := originalMsg.Headers["x-retry-count"]; ok {
-		if c, ok := count.(int32); ok {
-			retryCount = c + 1
-		}
+	select {
+	case <-time.After(delay):
+		// Proceed with republish
+	case <-ctx.Done():
+		// Server shutting down during sleep, return message to DLQ
+		msg.Nack(false, true)
+		return
 	}
 
-	// 创建新的消息头
+	// Get a new temporary channel for publishing
+	pubCh, err := GetChannel()
+	if err != nil {
+		log.Printf("[TraceID: %s] Failed to get publish channel: %v", traceID, err)
+		msg.Nack(false, true) // Requeue to DLQ on infrastructure failure
+		return
+	}
+	defer pubCh.Close()
+
+	// Prepare new headers
 	headers := amqp.Table{}
-	for k, v := range originalMsg.Headers {
+	for k, v := range msg.Headers {
 		headers[k] = v
 	}
-	headers["x-retry-count"] = retryCount
+	headers["x-retry-count"] = currentRetry + 1
 	headers["X-Trace-ID"] = traceID
 
-	// 重新发布消息
-	err := Channel.PublishWithContext(ctx,
-		"quota_exchange",
-		"quota.add",
+	err = pubCh.PublishWithContext(ctx,
+		"quota_exchange", // Main exchange
+		"quota.add",      // Main routing key
 		false,
 		false,
 		amqp.Publishing{
-			ContentType:  originalMsg.ContentType,
-			Body:         originalMsg.Body,
+			ContentType:  msg.ContentType,
+			Body:         msg.Body,
 			DeliveryMode: amqp.Persistent,
 			Headers:      headers,
 		})
 
 	if err != nil {
-		log.Printf("[TraceID: %s] 重试消息发布失败: %v", traceID, err)
-	} else {
-		log.Printf("[TraceID: %s] 消息重试发布成功 (重试次数: %d)", traceID, retryCount)
+		log.Printf("[TraceID: %s] Failed to republish message: %v", traceID, err)
+		msg.Nack(false, true) // Requeue to DLQ
+		return
 	}
+
+	log.Printf("[TraceID: %s] Successfully republished message (Retry: %d)", traceID, currentRetry+1)
+
+	// Only Ack the original DLQ message after successful republish
+	msg.Ack(false)
+}
+
+// getRetryCount safely extracts the retry count from headers
+func getRetryCount(msg amqp.Delivery) int32 {
+	if countRaw, ok := msg.Headers["x-retry-count"]; ok {
+		switch v := countRaw.(type) {
+		case int32:
+			return v
+		case int64:
+			return int32(v)
+		case int:
+			return int32(v)
+		}
+	}
+	return 0
+}
+
+// persistFailedMessage acts as the final safety net for dead messages
+func persistFailedMessage(event QuotaUpgradeEvent, traceID string, retryCount int32) {
+	// TODO: In a real project, INSERT this into a MySQL table (e.g., failed_events)
+	// Example: INSERT INTO failed_events (user_id, event_id, status) VALUES (?, ?, 'FAILED')
+
+	log.Printf("[TraceID: %s] CRITICAL: Message permanently failed after %d retries. Event: %+v. Require manual compensation.",
+		traceID, retryCount, event)
 }

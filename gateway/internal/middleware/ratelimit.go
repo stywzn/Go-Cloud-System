@@ -3,48 +3,84 @@ package middleware
 import (
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"
 )
 
+// clientLimiter holds the limiter and the last seen timestamp for an IP
+type clientLimiter struct {
+	limiter  *rate.Limiter
+	lastSeen time.Time
+}
+
 type IPRateLimiter struct {
-	ips map[string]*rate.Limiter
+	ips map[string]*clientLimiter
 	mu  *sync.RWMutex
-	r   rate.Limit // 产生令牌的速率（每秒多少个）
-	b   int        // 令牌桶的容量（允许瞬间爆发的请求数）
+	r   rate.Limit
+	b   int
 }
 
 func NewIPRateLimiter(r rate.Limit, b int) *IPRateLimiter {
-	return &IPRateLimiter{
-		ips: make(map[string]*rate.Limiter),
+	i := &IPRateLimiter{
+		ips: make(map[string]*clientLimiter),
 		mu:  &sync.RWMutex{},
 		r:   r,
 		b:   b,
 	}
+
+	// start background goroutine to clean up inactive IPs
+	go i.cleanupVisitors()
+
+	return i
 }
 
-// getLimiter 获取对应 IP 的限流器，如果没有则新建一个
+// getLimiter retrieves or creates a limiter for the given IP
 func (i *IPRateLimiter) getLimiter(ip string) *rate.Limiter {
-	// check read mutex
 	i.mu.RLock()
-	limiter, exists := i.ips[ip]
+	v, exists := i.ips[ip]
+	if exists {
+		// update last seen time
+		v.lastSeen = time.Now()
+		i.mu.RUnlock()
+		return v.limiter
+	}
 	i.mu.RUnlock()
 
-	if !exists {
-		i.mu.Lock()
-		defer i.mu.Unlock()
+	i.mu.Lock()
+	defer i.mu.Unlock()
 
-		limiter, exists = i.ips[ip]
-		if !exists {
-			limiter = rate.NewLimiter(i.r, i.b)
-			i.ips[ip] = limiter
+	v, exists = i.ips[ip]
+	if !exists {
+		limiter := rate.NewLimiter(i.r, i.b)
+		i.ips[ip] = &clientLimiter{
+			limiter:  limiter,
+			lastSeen: time.Now(),
 		}
+		return limiter
 	}
-	return limiter
+
+	v.lastSeen = time.Now()
+	return v.limiter
 }
 
-// RateLimitMiddleware Gin 限流中间件
+// cleanupVisitors removes IP limiters that have not been seen for 3 minutes
+// runs every 1 minute
+func (i *IPRateLimiter) cleanupVisitors() {
+	for {
+		time.Sleep(time.Minute)
+		i.mu.Lock()
+		for ip, v := range i.ips {
+			if time.Since(v.lastSeen) > 3*time.Minute {
+				delete(i.ips, ip)
+			}
+		}
+		i.mu.Unlock()
+	}
+}
+
+// RateLimitMiddleware gin middleware for ip-based rate limiting
 func RateLimitMiddleware(limiter *IPRateLimiter) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ip := c.ClientIP()
@@ -53,10 +89,10 @@ func RateLimitMiddleware(limiter *IPRateLimiter) gin.HandlerFunc {
 			c.JSON(http.StatusTooManyRequests, gin.H{
 				"error": "429 Too Many Requests",
 			})
-			c.Abort() // 拦截请求，不再往下执行
+			c.Abort()
 			return
 		}
-		// 拿到令牌了，放行
+
 		c.Next()
 	}
 }

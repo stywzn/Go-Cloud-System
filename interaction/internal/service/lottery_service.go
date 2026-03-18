@@ -7,103 +7,109 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/go-redis/redis/v8"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/stywzn/Go-Cloud-System/interaction/config"
-	"github.com/stywzn/Go-Cloud-System/interaction/internal/mq" // 替换为你的真实 module 路径
+	"github.com/stywzn/Go-Cloud-System/interaction/internal/mq"
 	"github.com/stywzn/Go-Cloud-System/pkg/trace"
 )
 
-// 定义消息体结构
 type QuotaUpgradeEvent struct {
 	UserID   int    `json:"user_id"`
-	QuotaAdd int64  `json:"quota_add"` // 增加的字节数，4G = 4294967296
-	EventID  string `json:"event_id"`  // 唯一流水号，供下游做幂等性校验
+	QuotaAdd int64  `json:"quota_add"`
+	EventID  string `json:"event_id"`
 }
 
-// 核心 Lua 脚本：检查库存 -> 检查是否已中奖 -> 扣库存 -> 记录中奖名单
-// 返回值：1(成功), 0(库存不足), -1(已经中奖过了)
+// Fixed Lua script: properly checks actual stock value in Redis
 const seckillLuaScript = `
 local stockKey = KEYS[1]
 local winnerSetKey = KEYS[2]
 local userID = ARGV[1]
 
--- 1. 检查是否已经中奖（防刷/幂等）
-if redis.call('sismember', winnerSetKey, userID) == 1 then
-	return -1 
+-- 1. Check if user already won (Idempotency)
+if redis.call('SISMEMBER', winnerSetKey, userID) == 1 then
+    return -1 
 end
 
--- 2. 获取当前库存
---local stock = tonumber(redis.call('get', stockKey) or '0')
-local stock = 100 -- 终极作弊：不用去查了，直接给你 100 个名额！
+-- 2. Get actual stock from Redis
+local stock = tonumber(redis.call('GET', stockKey) or '0')
 
--- 3. 扣减库存并加入中奖名单
-if stock > 0 then
-	redis.call('decr', stockKey)
-	redis.call('sadd', winnerSetKey, userID)
-	return 1
+-- 3. Check stock and deduct
+if stock <= 0 then
+    return 0
 end
 
-return 0
+redis.call('DECR', stockKey)
+redis.call('SADD', winnerSetKey, userID)
+return 1
 `
 
-var Rdb *redis.Client // 假设你在项目初始化时已经把 Redis Client 赋值给这里
+// Note: Removed unused 'var Rdb *redis.Client' as config.Redis is used directly.
 
-// DoSeckill 执行秒杀抽奖逻辑
 func DoSeckill(ctx context.Context, userID int) error {
 	traceID := trace.GetTraceIDFromContext(ctx)
-	log.Printf("[TraceID: %s] 开始处理用户 %d 的抽奖请求", traceID, userID)
 
-	stockKey := "lottery:quota:stock"       // 里面存了类似 4（表示4个名额）
-	winnerSetKey := "lottery:quota:winners" // 存已经中奖的 userID
+	stockKey := "lottery:quota:stock"
+	winnerSetKey := "lottery:quota:winners"
 
-	// 执行Lua脚本原子性操作
+	// Execute Lua script atomically
 	result, err := config.Redis.Eval(ctx, seckillLuaScript, []string{stockKey, winnerSetKey}, userID).Result()
 	if err != nil {
-		log.Printf("[TraceID: %s] Redis Lua 执行失败: %v", traceID, err)
-		return errors.New("系统繁忙，请稍后再试")
+		log.Printf("[TraceID: %s] Redis Eval error: %v", traceID, err)
+		return errors.New("system busy, please try again later")
 	}
 
-	resInt := result.(int64)
+	// Safe type assertion to prevent panic
+	resInt, ok := result.(int64)
+	if !ok {
+		log.Printf("[TraceID: %s] Redis Lua returned unexpected type", traceID)
+		return errors.New("internal system error")
+	}
+
 	if resInt == -1 {
-		log.Printf("[TraceID: %s] 用户 %d 重复中奖，拒绝请求", traceID, userID)
-		return errors.New("您已经中过奖了，把机会留给别人吧")
+		return errors.New("you have already won")
 	}
 	if resInt == 0 {
-		log.Printf("[TraceID: %s] 库存不足，用户 %d 抽奖失败", traceID, userID)
-		return errors.New("手慢了，奖品已经被抢光了")
+		return errors.New("out of stock")
 	}
 
-	// 秒杀成功！立刻向 RabbitMQ 发送异步发奖消息
+	// Prepare MQ message
 	event := QuotaUpgradeEvent{
 		UserID:   userID,
-		QuotaAdd: 4 * 1024 * 1024 * 1024, // 4GB
+		QuotaAdd: 4 * 1024 * 1024 * 1024,
 		EventID:  fmt.Sprintf("lottery_event_%d_%s", userID, traceID),
 	}
 
 	body, _ := json.Marshal(event)
 
-	err = mq.Channel.PublishWithContext(ctx,
-		"quota_exchange", // exchange
-		"quota.add",      // routing key
-		false,            // mandatory
-		false,            // immediate
+	// In DoSeckill function, before publishing:
+	ch, err := mq.GetChannel()
+	if err != nil {
+		return errors.New("failed to get MQ channel")
+	}
+	defer ch.Close() // Ensure channel is closed to prevent resource leak
+
+	// Publish to RabbitMQ
+	err = ch.PublishWithContext(ctx,
+		"quota_exchange",
+		"quota.add",
+		false,
+		false,
 		amqp.Publishing{
 			ContentType:  "application/json",
 			Body:         body,
-			DeliveryMode: amqp.Persistent, // 消息持久化
+			DeliveryMode: amqp.Persistent, // Ensure message survives MQ restarts
 			Headers: amqp.Table{
 				"X-Trace-ID": traceID,
 			},
 		})
 
 	if err != nil {
-		// 极端情况：Redis 扣了库存，但 MQ 发送失败。
-		// 生产环境这里应该记录本地错误日志，或者写入 MySQL 本地消息表，后续定时任务重试
-		log.Printf("[TraceID: %s] CRITICAL: 用户 %d 抽奖成功，但 MQ 消息发送失败: %v", traceID, userID, err)
-		return errors.New("服务器开小差了，请联系客服补偿")
+		// TODO: Implement reliable message delivery (e.g., Transactional Outbox pattern or local retry)
+		// Currently logging as critical. Manual intervention required if this triggers.
+		log.Printf("[TraceID: %s] CRITICAL: Deducted stock but failed to publish MQ message: %v", traceID, err)
+		return errors.New("failed to dispatch reward, please contact support")
 	}
 
-	log.Printf("[TraceID: %s] 用户 %d 抽奖成功，消息已发送到MQ", traceID, userID)
+	log.Printf("[TraceID: %s] User %d successfully grabbed quota, message dispatched", traceID, userID)
 	return nil
 }

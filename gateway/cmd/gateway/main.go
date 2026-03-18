@@ -40,7 +40,8 @@ func main() {
 			c.Next()
 			return
 		}
-		middleware.JWTAuthMiddleware()
+		// Execute the returned gin.HandlerFunc by passing the context 'c'
+		middleware.JWTAuthMiddleware()(c)
 	})
 
 	// 基础探针与工具接口
