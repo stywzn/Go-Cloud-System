@@ -12,6 +12,13 @@ import (
 // JWTAuthMiddleware Gateway authentication interceptor
 func JWTAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// 0. Whitelist public routes (Bypass JWT check for login/register)
+		path := c.Request.URL.Path
+		if strings.HasPrefix(path, "/api/v1/auth/login") || strings.HasPrefix(path, "/api/v1/auth/register") {
+			c.Next()
+			return
+		}
+
 		// 1. Strip potentially forged internal headers from the client
 		c.Request.Header.Del("X-User-Id")
 

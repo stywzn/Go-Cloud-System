@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -74,43 +73,46 @@ func (m *MinIOStorage) UploadPart(uploadID string, partNumber int, r io.Reader, 
 	return err
 }
 
-// CompleteUpload 完成分片上传，合并所有分片
+// 上面的初始化和 Put 保持不变...
+// CompleteUpload 生产级修复：使用 ComposeObject 服务端合并，彻底解决 OOM
 func (m *MinIOStorage) CompleteUpload(uploadID string, parts []Part) (string, error) {
 	ctx := context.Background()
+	// 真实场景下，最终的文件名(Key)通常是由调用方传入的(比如文件的MD5)，这里先按你的逻辑用 .merged
 	finalKey := uploadID + ".merged"
 
-	// 获取所有分片并合并
-	var buf bytes.Buffer
+	// 1. 构造合并源对象列表
+	var srcOpts []minio.CopySrcOptions
 	for _, part := range parts {
 		partKey := filepath.Join("temp", uploadID, fmt.Sprintf("part-%d", part.PartNumber))
-		obj, err := m.client.GetObject(ctx, m.bucket, partKey, minio.GetObjectOptions{})
-		if err != nil {
-			return "", fmt.Errorf("failed to get part %d: %w", part.PartNumber, err)
-		}
-		defer obj.Close()
-
-		if _, err := io.Copy(&buf, obj); err != nil {
-			return "", fmt.Errorf("failed to read part %d: %w", part.PartNumber, err)
-		}
-
-		// 删除分片文件
-		if err := m.client.RemoveObject(ctx, m.bucket, partKey, minio.RemoveObjectOptions{}); err != nil {
-			// 记录错误但继续，防止阻塞
-			fmt.Printf("warning: failed to remove part %s: %v\n", partKey, err)
-		}
+		srcOpts = append(srcOpts, minio.CopySrcOptions{
+			Bucket: m.bucket,
+			Object: partKey,
+		})
 	}
 
-	// 上传合并后的文件
-	_, err := m.client.PutObject(ctx, m.bucket, finalKey, &buf, int64(buf.Len()), minio.PutObjectOptions{
-		ContentType: "application/octet-stream",
-	})
+	// 2. 构造目标对象
+	dstOpt := minio.CopyDestOptions{
+		Bucket: m.bucket,
+		Object: finalKey,
+	}
+
+	// 3. 核心调用：命令 MinIO 在服务端进行无内存消耗的拼接
+	// 注意：如果是超大文件(超过 10000 个分片)，需要分批 Compose，一般情况足够了
+	_, err := m.client.ComposeObject(ctx, dstOpt, srcOpts...)
 	if err != nil {
-		return "", fmt.Errorf("failed to upload merged file: %w", err)
+		return "", fmt.Errorf("failed to compose object on server side: %w", err)
 	}
 
-	// 删除临时目录
-	// 注意：MinIO不直接支持删除目录，需要逐个删除
-	// 这里简化处理，实际场景可以记录临时文件列表后删除
+	// 4. 异步清理临时分片 (不阻塞主流程返回)
+	go func() {
+		cleanCtx := context.Background()
+		for _, part := range parts {
+			partKey := filepath.Join("temp", uploadID, fmt.Sprintf("part-%d", part.PartNumber))
+			if err := m.client.RemoveObject(cleanCtx, m.bucket, partKey, minio.RemoveObjectOptions{}); err != nil {
+				fmt.Printf("[Async Cleanup] warning: failed to remove part %s: %v\n", partKey, err)
+			}
+		}
+	}()
 
 	return finalKey, nil
 }

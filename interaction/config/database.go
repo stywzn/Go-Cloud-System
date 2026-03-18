@@ -17,7 +17,7 @@ var (
 
 func InitConfig() {
 	// 连接 MySQL：注意这里我已经帮你改成了 docker-compose 里的密码和新数据库名
-	dsn := "root:root@tcp(127.0.0.1:3306)/cloud_system?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := "root:rootpassword@tcp(127.0.0.1:3306)/cloud_system?charset=utf8mb4&parseTime=True&loc=Local"
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf(" MySQL 连接失败: %v", err)

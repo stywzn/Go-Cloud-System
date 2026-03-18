@@ -2,10 +2,10 @@ package api
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stywzn/Go-Cloud-System/interaction/config"
+	"github.com/stywzn/Go-Cloud-System/pkg/jwt" // Add JWT package
 	"github.com/stywzn/Go-Cloud-System/pkg/trace"
 )
 
@@ -50,7 +50,7 @@ func RegisterHandler(c *gin.Context) {
 	})
 }
 
-// LoginHandler 用户登录
+// LoginHandler handles user login and issues a JWT token
 func LoginHandler(c *gin.Context) {
 	traceID := trace.GetTraceID(c)
 
@@ -64,7 +64,7 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 
-	// 查询用户
+	// Query user data from the database
 	var user struct {
 		ID       int    `json:"id"`
 		Username string `json:"username"`
@@ -78,14 +78,18 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 
-	// 验证密码 (简单验证，生产环境应该使用bcrypt)
+	// Verify password (currently plain text, ideally bcrypt should be used)
 	if user.Password != req.Password {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "用户名或密码错误"})
 		return
 	}
 
-	// 生成简单的token (实际应该使用JWT)
-	token := strconv.Itoa(user.ID)
+	// Generate standard JWT token using the imported package
+	token, err := jwt.GenerateToken(user.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "系统内部错误"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":  "登录成功",

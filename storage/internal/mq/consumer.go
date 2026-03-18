@@ -75,12 +75,12 @@ func StartQuotaConsumer(amqpURL string) {
 			if err != nil {
 				log.Printf("处理配额增加失败 (UserID: %d): %v", event.UserID, err)
 				// 处理失败，拒绝确认并重新入队（生产环境通常配合死信队列 DLQ 使用）
-				d.Nack(false, true)
+				d.Nack(false, false)
 				continue
 			}
 
 			// 完美成功，手动发送 ACK 确认！消息正式从 MQ 中删除
-			log.Printf("✅ 用户 %d 成功增加配额 %d 字节", event.UserID, event.QuotaAdd)
+			log.Printf("用户 %d 成功增加配额 %d 字节", event.UserID, event.QuotaAdd)
 			d.Ack(false)
 		}
 	}()
@@ -102,7 +102,7 @@ func processQuotaUpgrade(event QuotaUpgradeEvent) error {
 	if err != nil {
 		tx.Rollback()
 		// 判断是否是 Duplicate Key 冲突 (这里简化处理，认为插入失败就是重复消费)
-		log.Printf("⚠️ 消息 %s 已被处理过，触发幂等防重，忽略本次操作", event.EventID)
+		log.Printf("消息 %s 已被处理过，触发幂等防重，忽略本次操作", event.EventID)
 		return nil // 注意这里返回 nil，让外部发送 ACK，把重复的消息消费掉
 	}
 

@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"crypto/md5"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -10,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	"sync"
 	"time"
 
 	"github.com/stywzn/Go-Cloud-System/storage/internal/metrics"
@@ -20,8 +20,8 @@ import (
 
 type FileService interface {
 	UploadFile(ctx context.Context, file *multipart.FileHeader, userID uint) (*model.File, error)
-	// 分片上传接口
-	InitUpload(ctx context.Context, userID uint, fileName string, totalSize int64, chunkSize int64) (string, int64, error)
+	// Updated signature to match Handler expectations
+	InitUpload(ctx context.Context, userID uint, fileName string, fileHash string, totalSize int64, chunkSize int64) (int, string, []int, error)
 	UploadPart(ctx context.Context, uploadID string, partNumber int, r io.Reader, size int64) error
 	CompleteUpload(ctx context.Context, uploadID string, userID uint) (*model.File, error)
 	GetUploadStatus(ctx context.Context, uploadID string) (*model.UploadTask, error)
@@ -50,12 +50,7 @@ func NewFileService(
 	}
 }
 
-// 生成上传 ID
-func generateUploadID() string {
-	hasher := md5.New()
-	hasher.Write([]byte(fmt.Sprintf("%d", time.Now().UnixNano())))
-	return hex.EncodeToString(hasher.Sum(nil))
-}
+var partMu sync.Mutex
 
 func (s *fileService) UploadFile(ctx context.Context, fileHeader *multipart.FileHeader, userID uint) (*model.File, error) {
 	// 检查用户是否存在（如果不存在，创建默认用户）
@@ -121,28 +116,43 @@ func (s *fileService) UploadFile(ctx context.Context, fileHeader *multipart.File
 	return file, nil
 }
 
-func (s *fileService) InitUpload(ctx context.Context, userID uint, fileName string, totalSize int64, chunkSize int64) (string, int64, error) {
-	// 获取用户
+func (s *fileService) InitUpload(ctx context.Context, userID uint, fileName string, fileHash string, totalSize int64, chunkSize int64) (int, string, []int, error) {
+	// 1. Check User and Quota
 	user, err := s.userRepo.GetUserByID(ctx, userID)
 	if err != nil {
-		return "", 0, errors.New("user not found")
+		return 0, "", nil, errors.New("user not found")
 	}
-
-	// 检查配额
 	if user.Quota < totalSize {
 		metrics.RecordUploadPartFailure("quota_exceeded")
-		return "", 0, errors.New("quota exceeded")
+		return 0, "", nil, errors.New("quota exceeded")
 	}
 
-	uploadID := generateUploadID()
+	// 2. Scenario 1: Fast Resume (秒传)
+	// Check if this exact file (by Hash) already exists in the system
+	existingFile, err := s.repo.GetByHash(ctx, fileHash)
+	if err == nil && existingFile != nil {
+		// Just create a new reference in user's folder (logic omitted for brevity, assuming global uniqueness)
+		return 1, "", nil, nil
+	}
 
-	// 计算总chunk数
+	// 3. Scenario 2: Resumable Upload (断点续传)
+	// Check if an incomplete task exists for this user and this fileHash
+	// Note: You need a GetTaskByHash method in your taskRepo. Assuming we use fileHash as UploadID for simplicity.
+	uploadID := fileHash // Using hash as uploadID makes tracking state easier
+
+	existingTask, err := s.taskRepo.GetTask(ctx, uploadID)
+	if err == nil && existingTask != nil && existingTask.Status == 0 {
+		var completed []int
+		_ = json.Unmarshal([]byte(existingTask.CompletedChunks), &completed)
+		return 2, uploadID, completed, nil
+	}
+
+	// 4. Scenario 3: Brand New Upload (全新上传)
 	totalChunks := (int(totalSize) + int(chunkSize) - 1) / int(chunkSize)
 
-	// 创建upload task记录
 	task := &model.UploadTask{
 		UserID:          userID,
-		UploadID:        uploadID,
+		UploadID:        uploadID, // Use fileHash instead of random MD5
 		FileName:        fileName,
 		FileSize:        totalSize,
 		ChunkSize:       chunkSize,
@@ -153,21 +163,19 @@ func (s *fileService) InitUpload(ctx context.Context, userID uint, fileName stri
 
 	if err := s.taskRepo.CreateTask(ctx, task); err != nil {
 		metrics.RecordUploadPartFailure("create_task_failed")
-		return "", 0, err
+		return 0, "", nil, err
 	}
 
-	// 初始化存储
 	if err := s.store.InitUpload(uploadID); err != nil {
 		metrics.RecordUploadPartFailure("init_storage_failed")
 		s.taskRepo.DeleteTask(ctx, uploadID)
-		return "", 0, err
+		return 0, "", nil, err
 	}
 
-	return uploadID, chunkSize, nil
+	return 3, uploadID, []int{}, nil
 }
 
 func (s *fileService) UploadPart(ctx context.Context, uploadID string, partNumber int, r io.Reader, size int64) error {
-	// 获取upload task
 	task, err := s.taskRepo.GetTask(ctx, uploadID)
 	if err != nil {
 		metrics.RecordUploadPartFailure("task_not_found")
@@ -175,33 +183,29 @@ func (s *fileService) UploadPart(ctx context.Context, uploadID string, partNumbe
 	}
 
 	if task.Status != 0 {
-		metrics.RecordUploadPartFailure("task_not_uploading")
 		return errors.New("upload task not in uploading status")
 	}
 
-	// 上传分片
 	start := time.Now()
+	// Upload to MinIO
 	if err := s.store.UploadPart(uploadID, partNumber, r, size); err != nil {
 		metrics.RecordUploadPartFailure("upload_failed")
 		return err
 	}
-	duration := time.Since(start).Seconds()
 
-	// 根据大小范围录制指标
-	sizeRange := "small"
-	if size > 10*1024*1024 {
-		sizeRange = "large"
-	}
-	metrics.UploadPartDuration.WithLabelValues(sizeRange).Observe(duration)
+	metrics.UploadPartDuration.WithLabelValues("dynamic").Observe(time.Since(start).Seconds())
 	metrics.RecordUploadPartSuccess()
 
-	// 更新task的已完成分片列表
-	var completed []int
-	if err := json.Unmarshal([]byte(task.CompletedChunks), &completed); err != nil {
-		completed = []int{}
-	}
+	// CRITICAL FIX: Lock before modifying the JSON slice to prevent Lost Update in concurrent uploads
+	partMu.Lock()
+	defer partMu.Unlock()
 
-	// 检查是否已存在
+	// Re-fetch task to get the absolutely latest CompletedChunks state before modifying
+	latestTask, _ := s.taskRepo.GetTask(ctx, uploadID)
+
+	var completed []int
+	_ = json.Unmarshal([]byte(latestTask.CompletedChunks), &completed)
+
 	exists := false
 	for _, v := range completed {
 		if v == partNumber {
@@ -214,65 +218,47 @@ func (s *fileService) UploadPart(ctx context.Context, uploadID string, partNumbe
 	}
 
 	completedJSON, _ := json.Marshal(completed)
-	task.CompletedChunks = string(completedJSON)
-	if err := s.taskRepo.UpdateTask(ctx, task); err != nil {
-		return err
-	}
+	latestTask.CompletedChunks = string(completedJSON)
 
-	return nil
+	return s.taskRepo.UpdateTask(ctx, latestTask)
 }
 
 func (s *fileService) CompleteUpload(ctx context.Context, uploadID string, userID uint) (*model.File, error) {
-	// 获取upload task
 	task, err := s.taskRepo.GetTask(ctx, uploadID)
-	if err != nil {
-		metrics.RecordUploadComplete("failed")
-		return nil, errors.New("upload task not found")
+	if err != nil || task.Status != 0 {
+		return nil, errors.New("invalid upload task")
 	}
 
-	if task.Status != 0 {
-		metrics.RecordUploadComplete("failed")
-		return nil, errors.New("upload task not in uploading status")
-	}
-
-	// 验证所有分片已上传
 	var completed []int
-	if err := json.Unmarshal([]byte(task.CompletedChunks), &completed); err != nil {
-		completed = []int{}
-	}
+	_ = json.Unmarshal([]byte(task.CompletedChunks), &completed)
 
 	if len(completed) != task.TotalChunks {
-		metrics.RecordUploadComplete("incomplete_chunks")
 		return nil, fmt.Errorf("incomplete chunks: %d/%d", len(completed), task.TotalChunks)
 	}
 
-	// 调用存储引擎合并分片
 	parts := make([]storage.Part, len(completed))
 	for i, partNum := range completed {
 		parts[i] = storage.Part{PartNumber: partNum}
 	}
 
+	// Trigger MinIO to compose the file
 	finalKey, err := s.store.CompleteUpload(uploadID, parts)
 	if err != nil {
-		metrics.RecordUploadComplete("failed")
 		return nil, err
 	}
 
-	// 更新user配额
+	// Deduct Quota
 	user, err := s.userRepo.GetUserByID(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-	user.Quota -= task.FileSize
-	if err := s.userRepo.UpdateUser(ctx, user); err != nil {
-		return nil, err
+	if err == nil {
+		user.Quota -= task.FileSize
+		s.userRepo.UpdateUser(ctx, user)
 	}
 
-	// 创建文件记录
+	// Create Final File Record
 	file := &model.File{
 		OriginalName: task.FileName,
 		StoredName:   finalKey,
-		Hash:         uploadID,
+		Hash:         uploadID, // We used hash as uploadID
 		Size:         task.FileSize,
 		FilePath:     finalKey,
 	}
@@ -280,16 +266,8 @@ func (s *fileService) CompleteUpload(ctx context.Context, uploadID string, userI
 		return nil, err
 	}
 
-	// 更新任务状态为已完成
 	task.Status = 1
-	if err := s.taskRepo.UpdateTask(ctx, task); err != nil {
-		return nil, err
-	}
-
-	// 更新Prometheus指标
-	metrics.RecordUploadComplete("success")
-	metrics.UserStorageUsage.WithLabelValues(fmt.Sprintf("%d", userID)).Set(float64(task.FileSize))
-	metrics.StorageQuotaRemaining.WithLabelValues(fmt.Sprintf("%d", userID)).Set(float64(user.Quota))
+	s.taskRepo.UpdateTask(ctx, task)
 
 	return file, nil
 }

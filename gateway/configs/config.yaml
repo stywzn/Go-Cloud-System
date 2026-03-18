@@ -6,9 +6,16 @@ jwt:
 
 # dynamic route table
 routes:
-  - path_prefix: "/interaction"
+  # 鉴权和抽奖业务 -> 指向 Interaction 服务 (8082)
+  - path_prefix: "/api/v1/auth"
     target_url: "http://localhost:8082"
-  - path_prefix: "storage"
+  - path_prefix: "/api/v1/lottery"
+    target_url: "http://localhost:8082"
+    
+  # 上传业务 -> 指向 Storage 服务 (8083)
+  - path_prefix: "/api/v1/upload"
     target_url: "http://localhost:8083"
-  - path_prefix: "compute"
+    
+  # 如果后续有 compute 业务
+  - path_prefix: "/api/v1/compute"
     target_url: "http://localhost:8084"
