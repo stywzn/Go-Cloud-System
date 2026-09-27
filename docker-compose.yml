@@ -7,7 +7,9 @@ services:
     container_name: gcs-mysql
     restart: always
     ports:
-      - "3306:3306"
+      # 只绑本机:不加 127.0.0.1: 前缀时 Docker 会发布到 0.0.0.0(局域网可达),
+      # 而且 Docker 的 iptables 规则走 FORWARD 链,ufw 的 INPUT 规则拦不住。
+      - "127.0.0.1:3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: cloud_system # 默认帮你建好这个库
@@ -21,7 +23,8 @@ services:
     container_name: gcs-redis
     restart: always
     ports:
-      - "6380:6379"
+      # Redis 无密码,绑 0.0.0.0 等于把 shell 送人(可写 authorized_keys / crontab)
+      - "127.0.0.1:6380:6379"
     volumes:
       - redis_data:/data
 
@@ -31,8 +34,8 @@ services:
     container_name: gcs-minio
     restart: always
     ports:
-      - "9000:9000"   # API 端口
-      - "9001:9001"   # Web UI 控制台端口
+      - "127.0.0.1:9000:9000"   # API 端口
+      - "127.0.0.1:9001:9001"   # Web UI 控制台端口
     environment:
       MINIO_ROOT_USER: admin
       MINIO_ROOT_PASSWORD: password123
@@ -46,8 +49,8 @@ services:
     container_name: gcs-rabbitmq
     restart: always
     ports:
-      - "5672:5672"   # Go 代码连接用的 TCP 端口
-      - "15672:15672" # Web 后台管理界面 (账号密码 guest/guest)
+      - "127.0.0.1:5672:5672"   # Go 代码连接用的 TCP 端口
+      - "127.0.0.1:15672:15672" # Web 后台管理界面 (账号密码 guest/guest)
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
 
